@@ -1,4 +1,6 @@
 def get_range_for_difficulty(difficulty: str):
+    # Fix: define ranges so Hard >= Normal >= Easy.
+    # Collaboration: Copilot suggested range options; I chose these and verified with tests.
     if difficulty == "Easy":
         return 1, 20
     if difficulty == "Normal":
@@ -9,6 +11,8 @@ def get_range_for_difficulty(difficulty: str):
 
 
 def parse_guess(raw: str):
+    # Fix: robust parsing (empty, floats, invalid input).
+    # Collaboration: Copilot gave parsing ideas; I implemented and added tests to confirm edge cases.
     if raw is None or raw == "":
         return False, None, "Enter a guess."
 
@@ -25,6 +29,8 @@ def parse_guess(raw: str):
 
 
 def check_guess(guess, secret):
+    # Fix: always compare numeric values and return a simple outcome string (matches tests).
+    # Collaboration: I extracted this pure logic from the UI with Copilot's help and validated the contract with pytest.
     try:
         g = int(guess)
         s = int(secret)
@@ -39,6 +45,8 @@ def check_guess(guess, secret):
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
+    # Fix: deterministic scoring — win awards points (floor 10), wrong guesses apply a small penalty.
+    # Collaboration: Copilot suggested score formulas; I adjusted values and confirmed behavior with unit tests.
     if outcome == "Win":
         points = 100 - 10 * (attempt_number - 1)
         if points < 10:

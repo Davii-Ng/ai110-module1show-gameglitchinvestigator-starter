@@ -33,9 +33,12 @@ st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 
 # Initialize session state (use difficulty range for secret)
+# Collaboration: Copilot suggested using session state; I ensured the secret is set once and attempts start at 0.
 if "secret" not in st.session_state:
+    # Fix: use the difficulty-specific range when initializing secret so it doesn't change across reruns.
     st.session_state.secret = random.randint(low, high)
 if "attempts" not in st.session_state:
+    # Fix: start attempts at 0 to avoid off-by-one and negative attempts-left.
     st.session_state.attempts = 0
 if "score" not in st.session_state:
     st.session_state.score = 0
@@ -72,6 +75,8 @@ with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
 if new_game:
+    # Fix: reset all relevant session state so the UI and game logic start fresh.
+    # Collaboration: Copilot reminded me to reset state; I added history/score/status and used the difficulty range.
     st.session_state.attempts = 0
     st.session_state.score = 0
     st.session_state.status = "playing"
@@ -99,13 +104,17 @@ if submit:
     else:
         st.session_state.history.append(guess_int)
 
+        # Use pure logic from logic_utils and map outcomes to user-facing messages.
+        # Collaboration: I moved comparison logic to `check_guess` (with Copilot) and keep display messages here to avoid mixing concerns.
         outcome = check_guess(guess_int, st.session_state.secret)
 
         if outcome == "Win":
             message = "🎉 Correct!"
         elif outcome == "Too High":
+            # Fix: correct hint wording for 'too high'.
             message = "📉 Go LOWER!"
         else:
+            # Fix: correct hint wording for 'too low'.
             message = "📈 Go HIGHER!"
 
         if show_hint:
@@ -135,43 +144,3 @@ if submit:
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
-
-# Test cases
-import pytest
-
-def test_get_range_for_difficulty():
-    assert get_range_for_difficulty("Easy") == (1, 20)
-    assert get_range_for_difficulty("Normal") == (1, 50)
-    assert get_range_for_difficulty("Hard") == (1, 100)
-    assert get_range_for_difficulty("Unknown") == (1, 50)
-
-def test_parse_guess_valid_int_and_float():
-    ok, val, err = parse_guess("42")
-    assert ok and val == 42 and err is None
-
-    ok, val, err = parse_guess("3.0")
-    assert ok and val == 3 and err is None
-
-def test_parse_guess_empty_and_invalid():
-    ok, val, err = parse_guess("")
-    assert not ok and err == "Enter a guess."
-
-    ok, val, err = parse_guess(None)
-    assert not ok and err == "Enter a guess."
-
-    ok, val, err = parse_guess("abc")
-    assert not ok and err == "That is not a number."
-
-def test_check_guess_outcomes():
-    assert check_guess(50, 50) == "Win"
-    assert check_guess(60, 50) == "Too High"
-    assert check_guess(40, 50) == "Too Low"
-
-def test_update_score_win_and_floor():
-    assert update_score(0, "Win", 1) == 100
-    assert update_score(0, "Win", 2) == 90
-    assert update_score(0, "Win", 20) == 10
-
-def test_update_score_wrong_guess_penalty():
-    assert update_score(10, "Too Low", 1) == 5
-    assert update_score(10, "Too High", 3) == 5

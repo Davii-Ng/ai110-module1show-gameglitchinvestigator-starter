@@ -1,71 +1,11 @@
 import random
 import streamlit as st
-
-def get_range_for_difficulty(difficulty: str):
-    if difficulty == "Easy":
-        return 1, 20
-    if difficulty == "Normal":
-        return 1, 100
-    if difficulty == "Hard":
-        return 1, 50
-    return 1, 100
-
-
-def parse_guess(raw: str):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    try:
-        if "." in raw:
-            value = int(float(raw))
-        else:
-            value = int(raw)
-    except Exception:
-        return False, None, "That is not a number."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        # FIXME: Logic breaks here
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
-
-
-def update_score(current_score: int, outcome: str, attempt_number: int):
-    if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
-        return current_score + points
-
-    # FIXME: Logic breaks here
-    if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
-
-    # FIXME: Logic breaks here
-    if outcome == "Too Low":
-        return current_score - 5
-
-    return current_score
+from logic_utils import (
+    get_range_for_difficulty,
+    parse_guess,
+    check_guess,
+    update_score,
+)
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -92,25 +32,22 @@ low, high = get_range_for_difficulty(difficulty)
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 
+# Initialize session state (use difficulty range for secret)
 if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
-
 if "attempts" not in st.session_state:
-    st.session_state.attempts = 1
-
+    st.session_state.attempts = 0
 if "score" not in st.session_state:
     st.session_state.score = 0
-
 if "status" not in st.session_state:
     st.session_state.status = "playing"
-
 if "history" not in st.session_state:
     st.session_state.history = []
 
 st.subheader("Make a guess")
 
 st.info(
-    f"Guess a number between 1 and 100. "
+    f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
 )
 
@@ -136,7 +73,11 @@ with col3:
 
 if new_game:
     st.session_state.attempts = 0
-    st.session_state.secret = random.randint(1, 100)
+    st.session_state.score = 0
+    st.session_state.status = "playing"
+    st.session_state.history = []
+    low_new, high_new = get_range_for_difficulty(difficulty)
+    st.session_state.secret = random.randint(low_new, high_new)
     st.success("New game started.")
     st.rerun()
 
@@ -145,7 +86,6 @@ if st.session_state.status != "playing":
         st.success("You already won. Start a new game to play again.")
     else:
         st.error("Game over. Start a new game to try again.")
-    # FIXME: Logic breaks here
     st.stop()
 
 if submit:
@@ -159,12 +99,14 @@ if submit:
     else:
         st.session_state.history.append(guess_int)
 
-        if st.session_state.attempts % 2 == 0:
-            secret = str(st.session_state.secret)
-        else:
-            secret = st.session_state.secret
+        outcome = check_guess(guess_int, st.session_state.secret)
 
-        outcome, message = check_guess(guess_int, secret)
+        if outcome == "Win":
+            message = "🎉 Correct!"
+        elif outcome == "Too High":
+            message = "📉 Go LOWER!"
+        else:
+            message = "📈 Go HIGHER!"
 
         if show_hint:
             st.warning(message)
@@ -193,3 +135,43 @@ if submit:
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
+
+# Test cases
+import pytest
+
+def test_get_range_for_difficulty():
+    assert get_range_for_difficulty("Easy") == (1, 20)
+    assert get_range_for_difficulty("Normal") == (1, 50)
+    assert get_range_for_difficulty("Hard") == (1, 100)
+    assert get_range_for_difficulty("Unknown") == (1, 50)
+
+def test_parse_guess_valid_int_and_float():
+    ok, val, err = parse_guess("42")
+    assert ok and val == 42 and err is None
+
+    ok, val, err = parse_guess("3.0")
+    assert ok and val == 3 and err is None
+
+def test_parse_guess_empty_and_invalid():
+    ok, val, err = parse_guess("")
+    assert not ok and err == "Enter a guess."
+
+    ok, val, err = parse_guess(None)
+    assert not ok and err == "Enter a guess."
+
+    ok, val, err = parse_guess("abc")
+    assert not ok and err == "That is not a number."
+
+def test_check_guess_outcomes():
+    assert check_guess(50, 50) == "Win"
+    assert check_guess(60, 50) == "Too High"
+    assert check_guess(40, 50) == "Too Low"
+
+def test_update_score_win_and_floor():
+    assert update_score(0, "Win", 1) == 100
+    assert update_score(0, "Win", 2) == 90
+    assert update_score(0, "Win", 20) == 10
+
+def test_update_score_wrong_guess_penalty():
+    assert update_score(10, "Too Low", 1) == 5
+    assert update_score(10, "Too High", 3) == 5

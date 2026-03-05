@@ -54,6 +54,9 @@ Tests vs UI API mismatch: Tests expect check_guess to return a single outcome st
 
 
 Give one example of an AI suggestion that was incorrect or misleading (including what the AI suggested and how you verified the result).
+
+
+
 3. Debugging and testing your fixes
 How did you decide whether a bug was really fixed?
 Describe at least one test you ran (manual or using pytest)

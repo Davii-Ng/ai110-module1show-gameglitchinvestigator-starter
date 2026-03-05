@@ -34,6 +34,7 @@ def check_guess(guess, secret):
         return "Win", "🎉 Correct!"
 
     try:
+        # FIXME: Logic breaks here
         if guess > secret:
             return "Too High", "📈 Go HIGHER!"
         else:
@@ -54,11 +55,13 @@ def update_score(current_score: int, outcome: str, attempt_number: int):
             points = 10
         return current_score + points
 
+    # FIXME: Logic breaks here
     if outcome == "Too High":
         if attempt_number % 2 == 0:
             return current_score + 5
         return current_score - 5
 
+    # FIXME: Logic breaks here
     if outcome == "Too Low":
         return current_score - 5
 
@@ -142,6 +145,7 @@ if st.session_state.status != "playing":
         st.success("You already won. Start a new game to play again.")
     else:
         st.error("Game over. Start a new game to try again.")
+    # FIXME: Logic breaks here
     st.stop()
 
 if submit:
